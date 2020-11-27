@@ -1,0 +1,11 @@
+projectId="454.6"
+JSON="status="+"505"+"&"+"projectId="+projectId # http模式连接时，上传数据格式组织成get方式的参数形式，如 ： id=0001&name=Seth&gender=male
+wind_d_recvtime=0
+TIMER wind_d_cmd 1000
+  t1=SYSTIME
+  t1=t1-wind_d_recvtime
+  IF(t1>5*1000)
+    SEND(SOCK,A,JSON)
+    wind_d_recvtime=SYSTIME
+  END
+END

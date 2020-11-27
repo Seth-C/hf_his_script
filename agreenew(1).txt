@@ -1,0 +1,28 @@
+#注册包脚本示例
+
+#----配置参数-------------------------------------------
+# 注册包类型，0-不开启注册包，1-id模式，2-MAC模式
+#REGEN = 2
+# 注册包方式，1-first 连接时发送，2-every 每次发送数据时
+#REGTCP = 1
+# 注册包ID，0-65535，十六进制数组形式
+#REGID = [0x04,0x57,0xFB,0xA8]
+#-------------------------------------------------------
+
+# 获取设备的MAC地址
+recvtime=0
+mac = MAC
+mac = mac + "444"
+# “netp” 通道连接成功回调
+CONN SOCK A
+	SEND(SOCK,A,mac)
+END
+
+TIMER HeartBeat 1000
+  t=SYSTIME
+  t=t-recvtime
+  IF(t>86400*1000)
+  RESET
+  recvtime=SYSTIME
+  END
+END

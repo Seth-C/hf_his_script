@@ -1,0 +1,382 @@
+asking_s="A0";
+buffer_s = [];
+data_s1 = [];
+data_s2 = [];
+data_s3 = [];
+data_s4 = [];
+data_s5 = [];
+data_s6 = [];
+data_s7 = [];
+data_s8 = [];
+data_s9 = [];
+data_s10 = [];
+
+asking_c = [0x7E,0xA0,0x00,0x03,0x01,0x00,0x00,0xEF];
+over_c = [0x7E,0xA3,0x00,0x02,0x00,0x00,0xEF];
+play_c = [0x7E,0xA6,0x00,0x02,0x00,0x01,0xEF];
+reset_c = [0x7E,0x0C,0x00,0x02,0x00,0x00,0xEF];
+
+ready_d=[0x7E,0xA0,0x00,0x02,0x00,0x00,0xEF];
+done_d = [0x7E,0xA0,0x00,0x02,0x00,0x00,0xEF,0x7E,0xA3,0x00,0x02,0x00,0x01,0xEF];
+##err_d=[0x0d,0x03,0x00,0x00,0x00,0x01,0x84,0xC6];
+ret_packege_head = [0x7E,0xA0];
+ret_packege_not_end = [0x00,0x00];
+send_packege_head = [0x7E,0xA1];
+send_packege_end = [0xEF];
+
+cmd_last = [];
+is_sended_cmd = FALSE;
+isbusy_more = FALSE;
+total_packeges = 0;
+current_packege = 0;
+times_err = 0;
+times_err2 = 0;
+times_err3 = 0;
+index = 10;
+is_sended = FALSE;
+wrong = FALSE;
+num_ready_array = 0;
+num_current_array = 1;
+total_curre_packege = 10;
+
+###响应超时
+TIMER timeout 1000
+     IF(isbusy_more == TRUE)  
+       times_err3 = times_err3 + 1;
+       IF(times_err3 == 20)         #网络无响应响应重置
+            times_err3 = 0;
+            reset();
+       END
+     END
+     IF(is_sended == TRUE)
+      times_err = times_err +1;
+      IF((times_err == 2) && (total_packeges != current_packege))   #设备不响应数据包，立即复位重置
+        wrong = TRUE;
+        times_err = 0;
+        is_sended = FALSE;
+        reset();
+      END
+     END
+     IF(is_sended_cmd == TRUE)
+        times_err2 = times_err2 + 1;
+        IF(times_err2 == 20)           #设备不响应命令，立即复位重置
+            times_err2 = 0;
+            cmd_last = [];
+            reset();
+        END
+        IF(times_err2 == 10)          #设备不响应命令，重发一次
+        cmdSend(cmd_last);
+        END
+     END
+END
+
+### SOCK_COMMUNICATION
+RECV SOCK A
+input = INPUT;
+cmd=input.subString(0,2);
+lengt_input = input.length();
+cmd_temp = [];
+
+IF(lengt_input>=10)                   #接收数据包
+    len_buff = (buffer_s.length());
+    IF(len_buff>=2560)
+      layIn(num_ready_array);
+      num_ready_array = num_ready_array + 1;
+      buffer_s = (buffer_s.subString(2560,len_buff)) + input;
+      total = current_packege + ((buffer_s.length())/256); 
+      IF(total == total_packeges)
+      layIn(num_ready_array);
+      num_ready_array = num_ready_array + 1;
+      END
+      IF(num_current_array == num_ready_array)
+      next();
+      END
+      RETURN(FALSE);
+    END
+    IF(wrong != TRUE)         #设备不响应数据包后暂停接收数据
+    buffer_s = buffer_s + input;
+    END
+    total = current_packege + ((buffer_s.length())/256); 
+    IF(total == total_packeges)
+    layIn(num_ready_array);
+    num_ready_array = num_ready_array + 1;
+    next();
+    END
+    times_err3 = 0;
+    RETURN(FALSE);
+END
+
+IF((cmd=="A0") && (lengt_input<10))
+   cmd_temp = asking_c;
+   str_str = INPUT.subString(2,lengt_input);
+   total_packeges = stringToNum(str_str));
+   num_hex = (stringToNum(str_str)).toString(1,0);
+   cmd_temp = cmd_temp.replaceAt(5,num_hex.charAt(0));
+   cmd_temp = cmd_temp.replaceAt(6,num_hex.charAt(1));
+   done_d = done_d.replaceAt(4,num_hex.charAt(0));
+   done_d = done_d.replaceAt(5,num_hex.charAt(1));
+END
+IF((cmd=="A1") && (lengt_input<10))
+
+END
+IF((cmd=="A2") && (lengt_input<10))
+
+END
+IF((cmd=="A3") && (lengt_input<10))
+cmd_temp = over_c;
+END
+IF((cmd=="A4") && (lengt_input<10))
+cmd_temp = play_c;
+END
+IF((cmd=="A5") && (lengt_input<10))
+cmd_temp = reset_c;
+END
+IF((cmd=="A7") && (lengt_input<10))
+wrong = FALSE; 
+END
+  cmdSend(cmd_temp);
+  RETURN(FALSE)
+END
+
+### UART_COMMUNICATION
+RECV UART uart
+IF(((INPUT.length()) == 7) && ((INPUT.subString(0,2)) == ret_packege_head) && ((INPUT.subString(4,6)) != ret_packege_not_end))     
+    current_packege = current_packege + 1;          #响应数据包
+    index = index + 1;
+    is_sended = FALSE;
+    IF(index == total_curre_packege)
+    num_current_array = num_current_array + 1;
+    next();
+    ELSE
+    cutAndSend();
+    END
+    RETURN(FALSE);
+END
+
+    ret_d = INPUT.hexString();
+    ret_c = "";
+    is_sended_cmd = FALSE;
+    times_err2 = 0;
+  
+  IF(ret_d=="7EA300020001EF")      #第1个音频文件装载成功
+   ret_c = "A30"
+    cmd_last = [];
+    data_s = [];
+    cmdSend(over_c);
+    SEND(SOCK,A,ret_c);
+    current_packege = 0;
+    RETURN(FALSE);
+  END
+  IF(ret_d=="7EA600020001EF")      #正在播放
+    ret_c = "A6"
+    cmd_last = [];
+    SEND(SOCK,A,ret_c);
+    RETURN(FALSE);
+  END
+  IF(ret_d=="7E0C00020000EF")      #复位成功
+    ret_c = "0C"
+    cmd_last = [];
+    data_s = [];
+    SEND(SOCK,A,ret_c);
+    RETURN(FALSE);
+  END
+  IF(ret_d=="7E3F00020301EF")      #已退出下载模式
+    ret_c = "3F"
+    cmd_last = [];
+    data_s = [];
+    buffer_s = [];
+    total_packeges = 0;
+    current_packege = 0;
+    SEND(SOCK,A,ret_c);
+    RETURN(FALSE);
+  END
+  IF(ret_d==(done_d.hexString()))    #全部文件接收完毕
+    current_packege = current_packege + 1;      #响应数据包
+    ret_c = "A30"
+    times_err = 0;
+    isbusy_more = FALSE;
+    cmdSend(over_c);
+    SEND(SOCK,A,ret_c);
+    RETURN(FALSE);
+  END
+  IF(ret_d=="7EA000020000EF")      #握手成功
+    ret_c = "A0"
+    cmd_last = [];
+    SEND(SOCK,A,((buffer_s.length()).prtString()));
+    SEND(SOCK,A,ret_c);
+    isbusy_more = TRUE;
+    RETURN(FALSE);
+  END
+END
+
+### stringToNum 整数数字字符串转整数
+FUNCTION stringToNum (num)
+  len = num.length();
+  times = len;
+  result = 0;
+WHILE(times)
+  times = times -1;
+  tem = (num.charAt(times))-48;
+  FOR i,1,(len-times),1
+  tem = tem*10;
+  END
+  result = result + tem
+END
+RETURN(result)
+END
+###数据分包下发
+FUNCTION cutAndSend ()      #注意这种函数的RETURN(FALSE) 无法中断返回。
+front_segment_data=send_packege_head + (current_packege+1).toString(1,0)
+data_segment = [];
+IF(1 == num_current_array)
+  data_segment=data_s1.subString((index*256),(index*256+256))
+END
+IF(2 == num_current_array)
+  data_segment=data_s2.subString((index*256),(index*256+256))
+END
+IF(3 == num_current_array)
+  data_segment=data_s3.subString((index*256),(index*256+256))
+END
+IF(4 == num_current_array)
+  data_segment=data_s4.subString((index*256),(index*256+256))
+END
+IF(5 == num_current_array)
+  data_segment=data_s5.subString((index*256),(index*256+256))
+END
+IF(6 == num_current_array)
+  data_segment=data_s6.subString((index*256),(index*256+256))
+END
+IF(7 == num_current_array)
+  data_segment=data_s7.subString((index*256),(index*256+256))
+END
+IF(8 == num_current_array)
+  data_segment=data_s8.subString((index*256),(index*256+256))
+END
+IF(9 == num_current_array)
+  data_segment=data_s9.subString((index*256),(index*256+256))
+END
+IF(10 == num_current_array)
+  data_segment=data_s10.subString((index*256),(index*256+256))
+END
+segment_data=front_segment_data + data_segment
+segment_data=segment_data + send_packege_end
+SEND(UART,uart,segment_data)
+is_sended=TRUE
+END
+
+###控制命令下发
+FUNCTION cmdSend (cmd_curr)
+  cmd_last = cmd_curr;
+  SEND(UART,uart,cmd_curr);
+  is_sended_cmd = TRUE;
+END
+
+###设备复位
+FUNCTION reset ()
+  SEND(UART,uart,reset_c); 
+  total_packeges = 0;
+  current_packege = 0;
+  isbusy_more = FALSE;
+  num_ready_array = 0;
+ num_current_array = 1;
+ total_curre_packege = 10;
+  buffer_s = [];
+  data_s1 = [];
+  data_s2 = [];
+  data_s3 = [];
+  data_s4 = [];
+  data_s5 = [];
+  data_s6 = [];
+  data_s7 = [];
+  data_s8 = [];
+  data_s9 = [];
+  data_s10 = [];
+  err_c = "A2";
+  SEND(SOCK,A,err_c);
+END
+
+#存储新数据
+FUNCTION layIn (num_new)
+IF(num_new == 0)
+  data_s1 = buffer_s.subString(0,2560);
+END
+IF(num_new == 1)
+  data_s2 = buffer_s.subString(0,2560);
+END
+IF(num_new == 2)
+  data_s3 = buffer_s.subString(0,2560);
+END
+IF(num_new == 3)
+  data_s4 = buffer_s.subString(0,2560);
+END
+IF(num_new == 4)
+  data_s5 = buffer_s.subString(0,2560);
+END
+IF(num_new == 5)
+  data_s6 = buffer_s.subString(0,2560);
+END
+IF(num_new == 6)
+  data_s7 = buffer_s.subString(0,2560);
+END
+IF(num_new == 7)
+  data_s8 = buffer_s.subString(0,2560);
+END
+IF(num_new == 8)
+   data_s9 = buffer_s.subString(0,2560);
+END
+IF(num_new == 9)
+  data_s10 = buffer_s.subString(0,2560);
+END
+END
+#获取下一存储数据长度
+FUNCTION next ()
+  IF(num_current_array <= num_ready_array)
+    index=0
+    IF(num_current_array == 1)
+     total_curre_packege= (data_s1.length())/256
+     data_s10=[]
+    END
+    IF(num_current_array == 2)
+     total_curre_packege= (data_s2.length())/256
+     data_s1=[]
+    END
+    IF(num_current_array == 3)
+     total_curre_packege= (data_s3.length())/256
+     data_s2=[]
+    END
+    IF(num_current_array == 4)
+     total_curre_packege= (data_s4.length())/256
+     data_s3=[]
+    END
+    IF(num_current_array == 5)
+     total_curre_packege= (data_s5.length())/256
+     data_s4=[]
+    END
+    IF(num_current_array == 6)
+     total_curre_packege= (data_s6.length())/256
+     data_s5=[]
+    END
+    IF(num_current_array == 7)
+     total_curre_packege= (data_s7.length())/256
+     data_s6=[]
+    END
+    IF(num_current_array == 8)
+     total_curre_packege= (data_s8.length())/256
+     data_s7=[]
+    END
+    IF(num_current_array == 9)
+     total_curre_packege= (data_s9.length())/256
+     data_s8=[]
+    END
+    IF(num_current_array == 10)
+     total_curre_packege= (data_s10.length())/256
+     data_s9=[]
+    END
+    cutAndSend()
+  ELSE
+    num_current_array=1
+    num_ready_array=0
+    continue_c="A1"
+    SEND(SOCK,A,continue_c)
+  END
+END

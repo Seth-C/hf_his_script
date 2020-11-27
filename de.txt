@@ -1,0 +1,9 @@
+str = [0x68,0x46]
+code = str.subString(0,1)
+Cva = code.charAt(0)
+IF(Cva==8)
+SEND(UART,uart,str)
+ELSE
+SEND(UART,uart,"12")
+END
+pp=str.indexOf("h")

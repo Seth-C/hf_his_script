@@ -1,0 +1,277 @@
+json_7B = [0x7B]
+json_7D = [0x7D]
+json_22 = [0x22]
+json_3A = [0x3A]
+json_2C = [0x2C]
+#项目信息
+projectId = "000001"
+mac = MAC
+input = []
+Modbus_L = 0
+#协议
+protocol_head = "7564"
+custom_P = [0x75,0x64,0x00]
+modbus_rtu_P = [0x75,0x64,0x01]
+DLT645_P = [0x75,0x64,0x02]
+CJT188_P = [0x75,0x64,0x03]
+modbus_short = [0x00,0x01]
+modbus_int_float_undef = [0x00,0x02]
+modbus_long_double = [0x00,0x04]
+#查询相关
+protocol2 = ""
+deviceType = ""
+parameter = "" 
+valueType = ""
+operationWrite = [0x01]
+operationCode = []
+#查询状态
+isdown = FALSE
+isbusy = FALSE
+issended = FALSE
+#响应数据json
+JSON = ""
+status = "504"
+projectId = "000001"
+deviceId = ""
+attribute = ""
+value = ""
+valuetype = "hex"
+unit = ""
+formula = "v"
+
+b =0
+e =0
+count2 = 0
+i = 0
+count1 = 0
+
+TIMER Receive 1000
+IF(isdown==1)
+count1 = count1 +1
+END
+IF(count1==5 && (input.length())>60)
+isdown=FALSE
+count1=0
+Modbus_L = input.length()
+END
+END
+
+TIMER Search 4
+IF(i<Modbus_L && isbusy!=1)
+char = input.charAt(i)
+IF(char==36)
+b = i + 1
+END
+IF(char==35)
+e = i
+isbusy = TRUE
+END
+i = i + 1
+END
+IF(i>=Modbus_L)
+i = 0
+END
+END
+
+TIMER Instruct 1000
+IF(isbusy==1 && issended==0)
+issended = TRUE
+SEND(SOCK,A,JSON)
+IF((input.length())!=Modbus_L)
+BREAK()
+END
+insts = (input.subString(b,e)).stringHex()
+protocol2=insts.subString(0,3)
+lengt2=insts.length()
+parameter = insts.charAt(4)
+paramAttri()
+valueType = insts.charAt(5)
+operation = insts.subString(6,7)
+operationCode = insts.subString(7,8)
+cmd = ""
+IF((protocol2==custom_P) && (lengt2>18))
+deviceType = "unknown"
+cmd = insts.subString(19,(lengt2-1))
+END
+IF((protocol2==modbus_rtu_P) && (lengt2==22))
+deviceType = "modbus"
+mbip = insts.subString(18,19)
+register = insts.subString(19,21)
+deviceId = mac + (insts.subString(18,21)).hexString()
+IF(operation==operationWrite)
+ELSE
+IF(valueType==2 || valueType==8)
+cmd = mbip + operationCode + register + modbus_short
+valuetype = "short"
+END
+IF(valueType==3 || valueType==5)
+cmd = mbip + operationCode + register + modbus_int_float_undef
+valuetype = "int"
+END
+IF(valueType==9)
+cmd = mbip + operationCode + register + modbus_short
+valuetype = "undefined"
+END
+cmd = cmd + (CALCRC16(cmd)).toString(1,0)
+END
+END
+IF((protocol2==DLT645_P) && (lengt2==25))
+END
+IF((protocol2==CJT188_P) && (lengt2==26))
+END
+SEND(UART,uart,cmd)
+END
+IF(issended==1)
+count2 = count2 + 1
+END
+IF(count2==2)
+isbusy=FALSE
+count2=0
+issended=FALSE
+END
+END
+
+RECV SOCK A
+IF((INPUT.subString(3,15)) == mac)
+isdown = TRUE
+Modbus_L = 0
+input = ""
+END
+IF(isdown==1)
+input = input + INPUT
+END
+RETURN(FALSE)
+END
+
+RECV UART uart
+IF(protocol2==custom_P)
+END
+IF(protocol2==modbus_rtu_P)
+CRC = INPUT.subString(5,7)
+compute_hex = CALCRC16(INPUT.subString(0,5))
+compute_crc = compute_hex.toString(1,0)
+IF(INPUT.length()!=7 || compute_crc != CRC)
+RETURN(FALSE)
+END
+valueS = modbus_calculate(INPUT)
+value = numToString(valueS)
+status = "200"
+refreshJson()
+END
+IF(protocol2==DLT645_P)
+END
+IF(protocol2==CJT188_P)
+END
+isbusy = FALSE
+count2 = 0
+issended=FALSE
+RETURN(FALSE)
+END
+
+FUNCTION modbus_calculate (DATA)
+data_3 = DATA.charAt(3)
+data_4 = DATA.charAt(4)
+IF(data_3<0)
+data_3 = data_3 + 256
+END
+IF(data_4<0)
+data_4 = data_4 + 256
+END
+Value = data_3*256 + data_4
+RETURN(Value)
+END
+
+FUNCTION refreshJson ()
+    strb = json_7B
+    stre = json_7D
+    str0 = json_22 + "status"+ json_22 + json_3A + json_22 + status +json_22 
+    str1 = json_2C + json_22 +"projectId"+ json_22 + json_3A + json_22 + projectId +json_22
+    str2 = json_2C + json_22 +"deviceId"+ json_22 + json_3A + json_22 + deviceId +json_22
+    str3 = json_2C + json_22 +"attribute"+ json_22 + json_3A + json_22 + attribute +json_22
+    str4 =  json_2C + json_22 +"value"+ json_22 + json_3A + json_22 + value +json_22
+    str5 = json_2C + json_22 +"valuetype"+ json_22 + json_3A + json_22 + valuetype +json_22
+    str6 = json_2C + json_22 +"unit"+ json_22 + json_3A + json_22 + unit +json_22
+    str7 =  json_2C + json_22 +"formula"+ json_22 + json_3A + json_22 + formula +json_22
+    JSON = strb + str0 + str1 + str2 + str3 + str4 + str5 + str6 + str7 + stre
+    RETURN(FALSE)
+END
+FUNCTION paramAttri ()
+IF(parameter==0)
+attribute = "undefined"
+unit = "-"
+END
+IF(parameter==1)
+attribute = "temperature"
+unit = "℃"
+END
+IF(parameter==2)
+attribute = "humidity"
+unit = "%rh"
+END
+IF(parameter==3)
+attribute = "Illumination"
+unit = "lux"
+END
+IF(parameter==4)
+attribute = "pm2.5"
+unit = "μg/m3"
+END
+IF(parameter==5)
+attribute = "pm10"
+unit = "mg/m3"
+END
+IF(parameter==6)
+attribute = "tsp"
+unit = "-"
+END
+IF(parameter==7)
+attribute = "noise"
+unit = "db"
+END
+IF(parameter==12)
+attribute = "wind_direction"
+unit = "°"
+END
+IF(parameter==13)
+attribute = "wind_speed"
+unit = "m/s"
+END
+IF(parameter==14)
+attribute = "atmos_pressure"
+unit = "hpa"
+END
+IF(parameter==15)
+attribute = "voltage"
+unit = "V"
+END
+IF(parameter==16)
+attribute = "electric_current"
+unit = "A"
+END
+IF(parameter==17)
+attribute = "power_consumption"
+unit = "kwh"
+END
+IF(parameter==18)
+attribute = "power"
+unit = "W"
+END
+IF(parameter==31)
+attribute = "water_consumption"
+unit = "m3"
+END
+RETURN(FALSE)
+END
+FUNCTION numToString (num)
+   str = num.prtString();
+   str_length = str.length()
+   IF(str_length != 1)
+      str_head = str.subString(0,str_length-1)
+      str_end = str.subString(str_length-1,str_length)
+      str = str_head + "." + str_end
+   ELSE
+      str_all = "0." + str
+      str = str_all
+   END
+   RETURN(str)
+END

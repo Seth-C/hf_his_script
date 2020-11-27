@@ -1,0 +1,245 @@
+asking_s="A0";
+buffer_s = [];
+data_s = [];
+
+asking_c = [0x7E,0xA0,0x00,0x03,0x01,0x00,0x00,0xEF];
+ready_c = "A0";
+over_c = [0x7E,0xA3,0x00,0x02,0x00,0x00,0xEF];
+play_c = [0x7E,0xA6,0x00,0x02,0x00,0x01,0xEF];
+reset_c = [0x7E,0x0C,0x00,0x02,0x00,0x00,0xEF];
+
+ready_d=[0x7E,0xA0,0x00,0x02,0x00,0x00,0xEF];
+done_d = [0x7E,0xA0,0x00,0x02,0x00,0x00,0xEF,0x7E,0xA3,0x00,0x02,0x00,0x01,0xEF];
+##err_d=[0x0d,0x03,0x00,0x00,0x00,0x01,0x84,0xC6];
+ret_packege_head = [0x7E,0xA0];
+ret_packege_not_end = [0x00,0x00];
+
+cmd_last = [];
+is_sended_cmd = FALSE;
+isbusy_more = FALSE;
+total_packeges = 0;
+current_packege = 0;
+times_err = 0;
+times_err2 = 0;
+times_err3 = 0;
+index = 10;
+end_packeges = 0;
+isbusy_end = FALSE;
+wrong = FALSE;
+
+###响应超时
+TIMER timeout 1000
+     IF(isbusy_more == TRUE)
+       times_err3 = times_err3 + 1;
+       IF(times_err3 == 10)
+           end_packeges = (buffer_s.length())/261;
+           SEND(SOCK,A,((buffer_s.length()).prtString()));
+           received_packeges = end_packeges + current_packege;
+           IF(received_packeges == total_packeges)
+            isbusy_end = TRUE;
+            data_s = buffer_s;
+            IF(index==10)
+            index = 0;
+            cutAndSend();
+            ELSE           #设备不响应数据包，立即复位重置
+            times_err3 = 0;
+            reset();
+            END
+           ELSE            #网络无响应响应重置
+            times_err3 = 0;
+            reset();
+           END
+       END
+     END
+     IF(isbusy_end == TRUE)
+      times_err = times_err +1;
+      IF((times_err == 2) && (total_packeges != current_packege))   #最后一区数据，设备不响应数据包，立即复位重置
+        times_err = 0;
+        isbusy_end = FALSE;
+        reset();
+      END
+     END
+     IF(is_sended_cmd == TRUE)
+        times_err2 = times_err2 + 1;
+        IF(times_err2 == 20)      #设备不响应命令，立即复位重置
+            times_err2 = 0;
+            cmd_last = [];
+            reset();
+        END
+        IF(times_err2 == 10)       #设备不响应命令，重发一次
+        cmdSend(cmd_last);
+        END
+     END
+END
+
+### SOCK_COMMUNICATION
+RECV SOCK A
+input = INPUT;
+cmd=input.subString(0,2);
+lengt_input = input.length();
+cmd_temp = [];
+
+IF(lengt_input>=10)                   #接收数据包
+    len_buff = (buffer_s.length());
+    IF(len_buff>=2610)
+    SEND(SOCK,A,((buffer_s.length()).prtString()));
+    data_s = buffer_s.subString(0,2610);
+    temp_cut = buffer_s.subString(2610,len_buff);
+    buffer_s = temp_cut + input;
+      IF(index==10)
+      index = 0;
+      cutAndSend();
+      ELSE
+      wrong = TRUE;           #设备不响应数据包，立即复位重置
+      reset();
+      RETURN(FALSE);
+      END
+      RETURN(FALSE);
+    END
+    IF(wrong != TRUE)
+    buffer_s = buffer_s + input;
+    SEND(SOCK,A,((buffer_s.length()).prtString()));
+    END
+    times_err3 = 0;
+    RETURN(FALSE);
+END
+
+IF((cmd=="A0") && (lengt_input<10))
+   cmd_temp = asking_c;
+   str_str = INPUT.subString(2,lengt_input);
+   total_packeges = stringToNum(str_str));
+   num_hex = (stringToNum(str_str)).toString(1,0);
+   cmd_temp = cmd_temp.replaceAt(5,num_hex.charAt(0));
+   cmd_temp = cmd_temp.replaceAt(6,num_hex.charAt(1));
+   done_d = done_d.replaceAt(4,num_hex.charAt(0));
+   done_d = done_d.replaceAt(5,num_hex.charAt(1));
+END
+IF((cmd=="A1") && (lengt_input<10))
+
+END
+IF((cmd=="A2") && (lengt_input<10))
+
+END
+IF((cmd=="A3") && (lengt_input<10))
+cmd_temp = over_c;
+END
+IF((cmd=="A4") && (lengt_input<10))
+cmd_temp = play_c;
+END
+IF((cmd=="A5") && (lengt_input<10))
+cmd_temp = reset_c;
+END
+IF((cmd=="A7") && (lengt_input<10))
+wrong = FALSE; 
+END
+  cmdSend(cmd_temp);
+  RETURN(FALSE)
+END
+
+### UART_COMMUNICATION
+RECV UART uart
+IF(((INPUT.length()) == 7) && ((INPUT.subString(0,2)) == ret_packege_head) && ((INPUT.subString(4,6)) != ret_packege_not_end))     
+    current_packege = current_packege + 1;          #响应数据包
+    index = index + 1;
+    IF(index<10)
+    cutAndSend();
+    END
+    RETURN(FALSE);
+END
+
+    ret_d = INPUT.hexString();
+    ret_c = "";
+    is_sended_cmd = FALSE;
+    times_err2 = 0;
+  
+  IF(ret_d=="7EA300020001EF")      #第1个音频文件装载成功
+   ret_c = "A30"
+    cmd_last = [];
+    data_s = [];
+    cmdSend(over_c);
+    SEND(SOCK,A,ret_c);
+    current_packege = 0;
+    RETURN(FALSE);
+  END
+  IF(ret_d=="7EA600020001EF")      #正在播放
+    ret_c = "A6"
+    cmd_last = [];
+    SEND(SOCK,A,ret_c);
+    RETURN(FALSE);
+  END
+  IF(ret_d=="7E0C00020000EF")      #复位成功
+    ret_c = "0C"
+    cmd_last = [];
+    data_s = [];
+    SEND(SOCK,A,ret_c);
+    RETURN(FALSE);
+  END
+  IF(ret_d=="7E3F00020301EF")      #已退出下载模式
+    ret_c = "3F"
+    cmd_last = [];
+    data_s = [];
+    buffer_s = [];
+    total_packeges = 0;
+    current_packege = 0;
+    SEND(SOCK,A,ret_c);
+    RETURN(FALSE);
+  END
+  IF(ret_d==(done_d.hexString()))    #全部文件接收完毕
+    current_packege = current_packege + 1;      #响应数据包
+    ret_c = "A30"
+    times_err = 0;
+    end_packeges =0;
+    isbusy_more = FALSE;
+    cmdSend(over_c);
+    SEND(SOCK,A,ret_c);
+    RETURN(FALSE);
+  END
+  IF(ret_d=="7EA000020000EF")      #握手成功
+    ret_c = "A0"
+    cmd_last = [];
+    SEND(SOCK,A,((buffer_s.length()).prtString()));
+    SEND(SOCK,A,ret_c);
+    isbusy_more = TRUE;
+    RETURN(FALSE);
+  END
+END
+
+### stringToNum 整数数字字符串转整数
+FUNCTION stringToNum (num)
+  len = num.length();
+  times = len;
+  result = 0;
+WHILE(times)
+  times = times -1;
+  tem = (num.charAt(times))-48;
+  FOR i,1,(len-times),1
+  tem = tem*10;
+  END
+  result = result + tem
+END
+RETURN(result)
+END
+
+###数据分包下发
+FUNCTION cutAndSend ()      #注意这种函数的RETURN(FALSE) 无法中断返回。
+      segment_data=data_s.subString((index*261),(index*261+261));
+      SEND(UART,uart,segment_data);
+END
+
+###控制命令下发
+FUNCTION cmdSend (cmd_curr)
+  cmd_last = cmd_curr;
+  SEND(UART,uart,cmd_curr);
+  is_sended_cmd = TRUE;
+END
+
+###设备复位
+FUNCTION reset ()
+  SEND(UART,uart,reset_c); 
+  total_packeges = 0;
+  current_packege = 0;
+  data_s = [];
+  buffer_s = [];
+  err_c = "A2";
+  SEND(SOCK,A,err_c);
+END

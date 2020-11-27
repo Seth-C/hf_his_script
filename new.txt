@@ -1,0 +1,285 @@
+asking_s="A0"
+buffer_s=[]
+data_c = []
+data_s1=[]
+data_s2=[]
+data_s3=[]
+data_s4=[]
+data_s5=[]
+data_s=[]
+temp_c=""
+asking_c=[0x7E,0xA0,0x00,0x03,0x01,0x00,0x00,0xEF]
+over_c=[0x7E,0xA3,0x00,0x02,0x00,0x00,0xEF]
+play_c=[0x7E,0xA6,0x00,0x02,0x00,0x01,0xEF]
+reset_c=[0x7E,0x0C,0x00,0x02,0x00,0x00,0xEF]
+ready_d=[0x7E,0xA0,0x00,0x02,0x00,0x00,0xEF]
+done_d=[0x7E,0xA0,0x00,0x02,0x00,0x00,0xEF,0x7E,0xA3,0x00,0x02,0x00,0x01,0xEF]
+ret_packege_head=[0x7E,0xA0]
+ret_packege_not_end=[0x00,0x00]
+send_packege_head=[0x7E,0xA1]
+send_packege_end=[0xEF]
+cmd_last=[]
+is_sended_cmd=FALSE
+isbusy_more=FALSE
+total_packeges=0
+current_packege=0
+times_err=0
+times_err2=0
+times_err3=0
+index=0
+is_sended=FALSE
+wrong=FALSE
+num_rArr=0
+num_cArr=1
+total_cPac=10
+s=2048
+e=2050
+TIMER timeout 1000
+IF(isbusy_more==TRUE)  
+times_err3=times_err3 + 1
+IF(times_err3==20)
+  times_err3=0
+  reset()
+END
+END
+IF(is_sended==TRUE)
+times_err=times_err +1
+IF((times_err==2) && (total_packeges != current_packege))
+  wrong=TRUE
+  times_err=0
+  is_sended=FALSE
+  reset()
+END
+END
+IF(is_sended_cmd==TRUE)
+times_err2=times_err2 + 1
+IF(times_err2==20)
+  times_err2=0
+  cmd_last=[]
+  reset()
+  END
+IF(times_err2==10)
+  cmdSend(cmd_last)
+END
+END
+END
+RECV SOCK A
+input=INPUT
+cmd=input.subString(0,2)
+lengt_input=input.length()
+cmd_temp=[]
+IF(lengt_input>=10)
+len_buff=(buffer_s.length())
+IF(len_buff>=2048)
+  gg =[0xbb,0xbb,0xbb]
+  layIn(num_rArr)
+  num_rArr=num_rArr + 1
+  SEND(UART,uart,(len_buff.prtString()))
+  temp_c=buffer_s.subString(s,e)
+  SEND(UART,uart,temp_c)
+  #buffer_s = temp_c + input
+  total=current_packege + (len_buff-2048+lengt_input)/256
+  IF(total==total_packeges)
+  layIn(num_rArr)
+  num_rArr=num_rArr + 1
+  END
+  IF(num_cArr==num_rArr)
+  SEND(UART,uart,gg)
+  nextArray()
+  END
+  RETURN(FALSE)
+END
+IF(wrong != TRUE)
+  buffer_s=buffer_s + input
+END
+total=current_packege + ((buffer_s.length())/256)
+IF(total==total_packeges)
+  layIn(num_rArr)
+  num_rArr=num_rArr + 1
+  nextArray()
+END
+times_err3=0
+RETURN(FALSE)
+END
+IF((cmd=="A0") && (lengt_input<10))
+cmd_temp=asking_c
+str_str=INPUT.subString(2,lengt_input)
+total_packeges=stringToNum(str_str)
+num_hex=(stringToNum(str_str)).toString(1,0)
+cmd_temp=cmd_temp.replaceAt(5,num_hex.charAt(0))
+cmd_temp=cmd_temp.replaceAt(6,num_hex.charAt(1))
+done_d=done_d.replaceAt(4,num_hex.charAt(0))
+done_d=done_d.replaceAt(5,num_hex.charAt(1))
+END
+IF((cmd=="A3") && (lengt_input<10))
+cmd_temp=over_c
+END
+IF((cmd=="A4") && (lengt_input<10))
+cmd_temp=play_c
+END
+IF((cmd=="A5") && (lengt_input<10))
+cmd_temp=reset_c
+END
+IF((cmd=="A7") && (lengt_input<10))
+wrong=FALSE 
+END
+cmdSend(cmd_temp)
+RETURN(FALSE)
+END
+RECV UART uart
+IF(((INPUT.length())==7) && ((INPUT.subString(0,2))==ret_packege_head) && ((INPUT.subString(4,6)) != ret_packege_not_end))     
+current_packege=current_packege + 1
+index=index + 1
+is_sended=FALSE
+IF(index==total_cPac)
+  num_cArr=num_cArr + 1
+  nextArray()
+ELSE
+  cutAndSend()
+END
+RETURN(FALSE)
+END
+ret_d=INPUT.hexString()
+ret_c=""
+is_sended_cmd=FALSE
+times_err2=0
+IF(ret_d=="7EA300020001EF")
+ret_c="A30"
+cmdSend(over_c)
+END
+IF(ret_d=="7EA600020001EF")
+ret_c="A6"
+END
+IF(ret_d=="7E0C00020000EF")
+ret_c="0C"
+END
+IF(ret_d=="7E3F00020301EF")
+ret_c="3F"
+buffer_s=[]
+total_packeges=0
+current_packege=0
+END
+IF(ret_d==(done_d.hexString()))
+current_packege=current_packege + 1     
+ret_c="A30"
+times_err=0
+isbusy_more=FALSE
+cmdSend(over_c)
+END
+IF(ret_d=="7EA000020000EF")
+ret_c="A0"
+isbusy_more=TRUE
+END
+cmd_last=[]
+SEND(SOCK,A,ret_c)
+END
+FUNCTION stringToNum (num)
+len=num.length()
+times=len
+result=0
+WHILE(times)
+times=times -1
+tem=(num.charAt(times))-48
+FOR i,1,(len-times),1
+tem=tem*10
+END
+result=result + tem
+END
+RETURN(result)
+END
+FUNCTION cutAndSend ()
+data_c = data_s1.subString(0,256)
+#data_s1 = data_c
+SEND(UART,uart,data_c)
+num_order = (current_packege+1).toString(1,0)
+front_segment_data=send_packege_head + num_order
+# data_segment=front_segment_data + data_segment + send_packege_end
+#is_sended=TRUE
+RETURN(FALSE)
+END
+FUNCTION cmdSend (cmd_curr)
+cmd_last=cmd_curr
+SEND(UART,uart,cmd_curr)
+is_sended_cmd=TRUE
+END
+FUNCTION reset ()
+SEND(UART,uart,reset_c) 
+total_packeges=0
+current_packege=0
+isbusy_more=FALSE
+num_rArr=0
+num_cArr=1
+total_cPac=10
+buffer_s=[]
+data_s1=[]
+data_s2=[]
+data_s3=[]
+data_s4=[]
+data_s5=[]
+err_c="A2"
+SEND(SOCK,A,err_c)
+END
+FUNCTION layIn (num_new)
+IF(num_new==0)
+tempb=buffer_s.subString(0,2048)
+tempa=tempb.hexString()
+data_s1=tempa.stringHex()
+END
+IF(num_new==1)
+tempb=buffer_s.subString(0,2048)
+tempa=tempb.hexString()
+data_s2=tempa.stringHex()
+END
+IF(num_new==2)
+tempb=buffer_s.subString(0,2048)
+tempa=tempb.hexString()
+data_s3=tempa.stringHex()
+END
+IF(num_new==3)
+tempb=buffer_s.subString(0,2048)
+tempa=tempb.hexString()
+data_s4=tempa.stringHex()
+END
+IF(num_new==4)
+tempb=buffer_s.subString(0,2048)
+tempa=tempb.hexString()
+data_s5=tempa.stringHex()
+END
+END
+FUNCTION nextArray ()
+IF(num_cArr <= num_rArr)
+index=0
+IF(num_cArr==1)
+total_cPac= (data_s1.length())/256
+SEND(UART,uart,(total_cPac.prtString()))
+data_s5=[]
+data_s = data_s1
+END
+IF(num_cArr==2)
+total_cPac= (data_s2.length())/256
+data_s1=[]
+data_s = data_s2
+END
+IF(num_cArr==3)
+total_cPac= (data_s3.length())/256
+data_s2=[]
+data_s = data_s3
+END
+IF(num_cArr==4)
+total_cPac= (data_s4.length())/256
+data_s3=[]
+data_s = data_s4
+END
+IF(num_cArr==5)
+total_cPac= (data_s5.length())/256
+data_s4=[]
+data_s = data_s5
+END
+#cutAndSend()
+ELSE
+num_cArr=1
+num_rArr=0
+continue_c="A1"
+SEND(SOCK,A,continue_c)
+END
+END

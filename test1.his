@@ -1,0 +1,84 @@
+ii2= ((1+(1+(1+2)*2))+1)
+i1=1*2+3+10
+s1= i1.prtString();
+a=""
+#a=2a+"abcdefg"
+a=a+"abcdefg"		#this is comments
+i= 1-2;
+c=a.replaceAt(1,'5')
+c= a.charAt(1);
+c= a.length()
+c= a.subString(2,4);
+b=SYSTIME+10
+d=MAC
+c=SOCKBEAT( netp ) ;
+aa= [0x01, 0x02, 0x03]
+ii=-1
+ii1= ii*(-2);
+ii2= -1*(1+2)+34*2-(1+(1+2)*2)
+f= 2.0
+f= -1.5
+f1= 3/2.0
+f2= 3/2
+s= 0x55
+s1= s>>1
+s2= s<<4
+
+TIMER HeartBeat 1000
+	j=0;
+	k=0;
+	WHILE (j<3+1)
+		WHILE (k<2)
+			k=k+1;
+		END
+		j=j+1;
+		k=0;
+	END
+END
+
+i=0;
+WHILE (i<5)
+	i=i+1
+END
+si=i.toString(0,2);
+
+FOR i,0,5,1
+	k=i
+END
+
+FOR i,5,0,-1
+	k=i
+END
+
+CONN SOCK netp
+	a= "456"
+	ret= func1("11", "22");
+	SEND(UART,uart0,a)
+	FOR i,0,3,1
+		SEND(SOCK,netp,"1234")
+	END
+END
+
+RECV SOCK netp
+	cc= a+"1"
+	dd= INPUT
+	WHILE (i<3)
+		i=i+1;
+	END
+	IF (cc==dd)
+		OUTPUT= "123456";
+	ELSE
+		IF (1)
+			OUTPUT= dd+a;
+		END
+	END
+	WAIT(3000+2000)
+	DISCONN(SOCK,netp);
+	RETURN(TRUE)
+END
+
+FUNCTION func1 (arg1,arg2)
+	tmp=arg1
+	tmp=arg2
+	RETURN(tmp)
+END

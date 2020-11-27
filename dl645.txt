@@ -1,0 +1,132 @@
+e_total=[0xFE,0xFE,0xFE,0x68,0x30,0x89,0x02,0x19,0x11,0x19,0x68,0x11,0x04,0x33,0x33,0x34,0x33,0xB0,0x16];
+#FE FE FE FE 68 30 89 02 19 11 19 68 91 08 33 33 34 33 C4 43 33 33 A1 16
+lrc = [0xFE,0xFE,0xFE,0xFE,0x68,0x30,0x89,0x02,0x19,0x11,0x19,0x68,0x91,0x08,0x33,0x33,0x34,0x33];
+mark = ""
+isbusy = FALSE
+
+e_value_recvtime=0
+
+###e_t_value
+TIMER e_t_value 1000
+  t1=SYSTIME
+  t1=t1-e_value_recvtime
+  IF(t1>17*1000)
+    IF(isbusy!=1)
+      SEND(UART,uart,e_total)
+      isbusy = TRUE
+      e_value_recvtime=SYSTIME
+      mark = "etotal"
+    ELSE
+    isbusy = FALSE
+    END
+  END
+END
+
+RECV UART uart
+     input_head = INPUT.subString(0,18);
+     input_length = INPUT.length()
+     IF(input_length!=24 || input_head!=lrc)
+     RETURN(FALSE)
+     END
+     DATA = INPUT.hexString()
+     bit_0 = util_hexToDecimalism(DATA.subString(36,37));
+     bit_1 = util_hexToDecimalism(DATA.subString(37,38));
+     bit_2 = util_hexToDecimalism(DATA.subString(38,39));
+     bit_3 = util_hexToDecimalism(DATA.subString(39,40));
+     bit_4 = util_hexToDecimalism(DATA.subString(40,41));
+     bit_5 = util_hexToDecimalism(DATA.subString(41,42));
+     bit_6 = util_hexToDecimalism(DATA.subString(42,43));
+     bit_7 = util_hexToDecimalism(DATA.subString(43,44));
+     value_0 = app_numTo2bitnumAndSub33(bit_7,bit_6);
+     value_1 = app_numTo2bitnumAndSub33(bit_5,bit_4);
+     value_2 = app_numTo2bitnumAndSub33(bit_3,bit_2);
+     value_3 = app_numTo2bitnumAndSub33(bit_1,bit_0);
+     output = value_0 +value_1 +value_2+"."+value_3;
+     OUTPUT =  ("#" + mark + "#") + output + "#";
+     isbusy = FALSE
+     RETURN(TRUE)
+END
+
+#个位数字和十位数字整合成2位数的十进制数减33后再转为字符串返回
+FUNCTION app_numTo2bitnumAndSub33 (bit0,bit1)
+  temp0 = bit0;
+  temp1 = bit1;
+   num = (temp1*10 + temp0)-33;
+   IF(num<10)
+     num_str = "0" + num.prtString();
+   ELSE
+     num_str = num.prtString();
+   END
+   RETURN(num_str);
+END
+
+#hex的123~def十六个字符转为十进制数值
+FUNCTION util_hexToDecimalism (character)
+IF(character=="0")
+     tmp1 = 0
+END
+IF(character=="1")
+     tmp1 = 1
+END
+IF(character=="2")
+     tmp1 = 2
+END
+IF(character=="3")
+     tmp1 = 3
+END
+IF(character=="4")
+     tmp1 = 4
+END
+IF(character=="5")
+     tmp1 = 5
+END
+IF(character=="6")
+     tmp1 = 6
+END
+IF(character=="7")
+     tmp1 = 7
+END
+IF(character=="8")
+     tmp1 = 8
+END
+IF(character=="9")
+     tmp1 = 9
+END
+IF(character=="A")
+     tmp1 = 10
+END
+IF(character=="B")
+     tmp1 = 11
+END
+IF(character=="C")
+     tmp1 = 12
+END
+IF(character=="D")
+     tmp1 = 13
+END
+IF(character=="E")
+     tmp1 = 14
+END
+IF(character=="F")
+     tmp1 = 15
+END
+IF(character=="a")
+     tmp1 = 10
+END
+IF(character=="b")
+     tmp1 = 11
+END
+IF(character=="c")
+     tmp1 = 12
+END
+IF(character=="d")
+     tmp1 = 13
+END
+IF(character=="e")
+     tmp1 = 14
+END
+IF(character=="f")
+     tmp1 = 15
+END
+RETURN(tmp1)
+END

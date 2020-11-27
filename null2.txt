@@ -1,0 +1,6 @@
+str = [0x81,0x0f]
+code = str.subString(0,1)
+Cva = str.charAt(0)
+Cva4 = (str.charAt(0))+256
+Cva2 = str.charAt(1)
+Cva3 = (str.charAt(1))+256

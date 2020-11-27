@@ -1,0 +1,223 @@
+wind_direction=[0x03,0x03,0x00,0x2A,0x00,0x01,0xA4,0x20]
+wind_speed=[0x02,0x03,0x00,0x2A,0x00,0x01,0xA5,0xF1]
+pm25=[0x0c,0x03,0x00,0x33,0x00,0x01,0x75,0x18]
+pm10=[0x0c,0x03,0x00,0x34,0x00,0x01,0xC4,0xD9]
+noise=[0x0d,0x03,0x00,0x00,0x00,0x01,0x84,0xC6]
+
+json_7B = [0x7B]  # {
+json_7D = [0x7D]  # }
+json_22 = [0x22]  # "
+json_3A = [0x3A]  # :
+mark = ""
+isbusy = FALSE
+mac = MAC
+unit = ""
+
+wind_d_recvtime=0
+wind_s_recvtime=0
+pm25_recvtime=0
+pm10_recvtime=0
+noise_recvtime=0
+
+###wind_d_cmd
+TIMER wind_d_cmd 1000
+  t1=SYSTIME
+  t1=t1-wind_d_recvtime
+  IF(t1>17*1000)
+    IF(isbusy!=1)
+      SEND(UART,uart,wind_direction)
+      isbusy = TRUE
+      wind_d_recvtime=SYSTIME
+      mark = "wind_direction"
+      unit = [0xA7]
+    ELSE
+    isbusy = FALSE
+    END
+  END
+END
+
+###wind_s_cmd
+TIMER wind_s_cmd 1000
+  t2=SYSTIME
+  t2=t2-wind_s_recvtime
+  IF(t2>5*1000)
+     IF(isbusy!=1)
+        SEND(UART,uart,wind_speed)
+        isbusy = TRUE
+        wind_s_recvtime=SYSTIME
+        mark = "wind_speed"
+        unit = "m/s"
+     ELSE
+     isbusy = FALSE
+     END
+  END
+END
+
+###pm25_cmd
+TIMER pm25_cmd 1000
+ t3=SYSTIME
+  t3=t3-pm25_recvtime
+  IF(t3>21*1000)
+     IF(isbusy!=1)
+       SEND(UART,uart,pm25)
+       isbusy = TRUE
+       pm25_recvtime=SYSTIME
+       mark = "pm2.5"
+       a = [0xE6]
+       unit = a + "g/m3"
+     ELSE
+     isbusy = FALSE
+     END
+  END
+END
+
+###pm10_cmd
+TIMER pm10_cmd 1000
+  t4=SYSTIME
+  t4=t4-pm10_recvtime
+  IF(t4>24*1000)
+     IF(isbusy!=1)
+        SEND(UART,uart,pm10)
+        isbusy = TRUE
+        pm10_recvtime=SYSTIME
+        mark = "pm10"
+        unit = "mg/m3"
+     ELSE
+     isbusy = FALSE
+     END
+  END
+END
+
+###noise_cmd
+TIMER noise_cmd 1000
+  t5=SYSTIME
+  t5=t5-noise_recvtime
+  IF(t5>11*1000)
+# noise = noise + (CALCRC16(noise)).toString(1,0)
+    IF(isbusy!=1)
+        SEND(UART,uart,noise)
+        isbusy = TRUE
+        noise_recvtime=SYSTIME
+        mark = "noise"
+        unit = "db"
+    ELSE
+    isbusy = FALSE
+    END
+  END
+END
+
+RECV UART uart
+    CRC = INPUT.subString(5,7);
+    compute_hex =  CALCRC16(INPUT.subString(0,5));
+    compute_crc = compute_hex.toString(1,0);
+    IF(INPUT.length()!=7 || compute_crc != CRC)
+    RETURN(FALSE)
+    END
+    DATA = INPUT.hexString()
+    str = ""
+    data_6 = hexToDecimalism(DATA.subString(6,7))
+    data_7 = hexToDecimalism(DATA.subString(7,8))
+    data_8 = hexToDecimalism(DATA.subString(8,9))
+    data_9 = hexToDecimalism(DATA.subString(9,10))
+    Value = (data_6*16*16*16+data_7*16*16+data_8*16+data_9)
+    str = string(Value);
+    SEND(SOCK,A,str);
+    isbusy = FALSE
+    RETURN(FALSE);
+END
+
+FUNCTION string (value)
+         str0 = json_7B
+         str1 = json_22 +"deviceId"+ json_22 + json_3A + json_22 + mac +json_22 +","
+         str2 = json_22 +"attribute"+ json_22 + json_3A + json_22 + mark +json_22 +","
+         str3 = json_22 +"value"+ json_22 + json_3A + json_22 + (numToString(value)) +json_22 +","
+         str4 = json_22 +"unit"+ json_22 + json_3A + json_22 + unit +json_22
+         str5 = json_7D
+         strall = str0 + str1 + str2 + str3 + str4 + str5
+         RETURN(strall)
+END
+
+### hexToDecimalism
+FUNCTION hexToDecimalism (character)
+IF(character=="0")
+     tmp1 = 0
+END
+IF(character=="1")
+     tmp1 = 1
+END
+IF(character=="2")
+     tmp1 = 2
+END
+IF(character=="3")
+     tmp1 = 3
+END
+IF(character=="4")
+     tmp1 = 4
+END
+IF(character=="5")
+     tmp1 = 5
+END
+IF(character=="6")
+     tmp1 = 6
+END
+IF(character=="7")
+     tmp1 = 7
+END
+IF(character=="8")
+     tmp1 = 8
+END
+IF(character=="9")
+     tmp1 = 9
+END
+IF(character=="A")
+     tmp1 = 10
+END
+IF(character=="B")
+     tmp1 = 11
+END
+IF(character=="C")
+     tmp1 = 12
+END
+IF(character=="D")
+     tmp1 = 13
+END
+IF(character=="E")
+     tmp1 = 14
+END
+IF(character=="F")
+     tmp1 = 15
+END
+IF(character=="a")
+     tmp1 = 10
+END
+IF(character=="b")
+     tmp1 = 11
+END
+IF(character=="c")
+     tmp1 = 12
+END
+IF(character=="d")
+     tmp1 = 13
+END
+IF(character=="e")
+     tmp1 = 14
+END
+IF(character=="f")
+     tmp1 = 15
+END
+RETURN(tmp1)
+END
+####numToString
+FUNCTION numToString (num)
+   str = num.prtString();
+   str_length = str.length()
+   IF(str_length != 1)
+      str_head = str.subString(0,str_length-1)
+      str_end = str.subString(str_length-1,str_length)
+      str = str_head + "." + str_end
+   ELSE
+      str_all = "0." + str
+      str = str_all
+   END
+   RETURN(str)
+END
