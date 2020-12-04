@@ -81,6 +81,7 @@ IF(lg==5)
 SEND(SOCK,A,getI)
 lg=1
 END
+RETURN(FALSE)
 END
 
 TIMER Search 3
@@ -98,10 +99,10 @@ END
 IF(i>=Mb_L)
 i=0
 END
+RETURN(FALSE)
 END
 
 TIMER Instruct 1000
-WAIT(544)
 IF(isB==1 && send==0)
 send=TRUE
 dId=inp.subString(b,(b+19))
@@ -177,6 +178,7 @@ stus="0"
 val="0"
 reJS2()
 END
+RETURN(FALSE)
 END
 
 RECV SOCK A

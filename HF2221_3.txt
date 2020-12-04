@@ -86,6 +86,7 @@ IF(lg==5)
 SEND(SOCK,netp,getI)
 lg=1
 END
+RETURN(FALSE)
 END
 
 TIMER Search 3
@@ -103,6 +104,7 @@ END
 IF(i>=inp_l)
 i=0
 END
+RETURN(FALSE)
 END
 
 TIMER Instruct 1000
@@ -183,6 +185,7 @@ stus="0"
 val="0"
 reJS2()
 END
+RETURN(FALSE)
 END
 
 RECV SOCK netp
