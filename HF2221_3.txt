@@ -1,5 +1,4 @@
 FLASH(STRSTR) proId="000001"
-FLASH(NUM) IT=544
 mac=MAC
 imei= "866"+mac
 B7=[0x7B]
@@ -86,7 +85,6 @@ IF(lg==5)
 SEND(SOCK,netp,getI)
 lg=1
 END
-RETURN(FALSE)
 END
 
 TIMER Search 3
@@ -104,11 +102,9 @@ END
 IF(i>=inp_l)
 i=0
 END
-RETURN(FALSE)
 END
 
 TIMER Instruct 1000
-WAIT(IT)
 IF(isB==1 && send==0)
 send=TRUE
 dId=inp.subString(b,(b+19))
@@ -177,7 +173,7 @@ END
 IF(send==1)
 c2=c2+1
 END
-IF(c2>=3)
+IF(c2>=2)
 isB=FALSE
 c2=0
 send=FALSE
@@ -185,7 +181,6 @@ stus="0"
 val="0"
 reJS2()
 END
-RETURN(FALSE)
 END
 
 RECV SOCK netp

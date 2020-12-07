@@ -81,7 +81,6 @@ IF(lg==5)
 SEND(SOCK,A,getI)
 lg=1
 END
-RETURN(FALSE)
 END
 
 TIMER Search 3
@@ -99,7 +98,6 @@ END
 IF(i>=Mb_L)
 i=0
 END
-RETURN(FALSE)
 END
 
 TIMER Instruct 1000
@@ -170,7 +168,7 @@ END
 IF(send==1)
 c2=c2+1
 END
-IF(c2>=3)
+IF(c2>=2)
 isB=FALSE
 c2=0
 send=FALSE
@@ -178,7 +176,6 @@ stus="0"
 val="0"
 reJS2()
 END
-RETURN(FALSE)
 END
 
 RECV SOCK A
