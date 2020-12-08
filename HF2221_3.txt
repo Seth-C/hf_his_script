@@ -104,7 +104,7 @@ i=0
 END
 END
 
-TIMER Instruct 1000
+TIMER Instruct 2000
 IF(isB==1 && send==0)
 send=TRUE
 dId=inp.subString(b,(b+19))
