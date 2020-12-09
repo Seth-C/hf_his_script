@@ -74,7 +74,7 @@ udPos=-1
 END
 t=SYSTIME
 t=t-rT
-IF(t>86400*1000)
+IF(t>21600*1000)
 RESET
 rT=SYSTIME
 END
@@ -87,7 +87,7 @@ lg=1
 END
 END
 
-TIMER Search 3
+TIMER Search 4
 IF(i<inp_l && isB!=1)
 char=inp.charAt(i)
 IF(char==36)
