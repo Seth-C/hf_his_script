@@ -26,9 +26,9 @@ isB=FALSE
 send=FALSE
 getI= B7+H22+"msgType"+H22+A3+H22+"get"+H22+C2+H22+"imei"+H22+A3+H22+imei+H22+D7
 JS=""
-jsh=H22+"msgType"+H22+A3+H22+"datapoint"+H22+C2
+jsh=H22+"msgType"+H22+A3+H22+"datapoint"+H22+C2+H22+"projectId"+H22+A3+H22+proId+H22
 JS2=""
-jsh2=H22+"msgType"+H22+A3+H22+"status"+H22+C2
+jsh2=H22+"msgType"+H22+A3+H22+"status"+H22+C2+H22+"projectId"+H22+A3+H22+proId+H22
 stus="0"
 dId=""
 typ=""
@@ -149,16 +149,23 @@ END
 CJcode=poC.charAt(0)
 IF(ptl==CJ188P && lengt2==16 && CJcode==1)
 CJip=[]
-FOR n,14,7,-1
-CJip=CJip+(insts.subString(n,(n+1)))
-END
+CJip=CJip+(insts.subString(14,15))
+CJip=CJip+(insts.subString(13,14))
+CJip=CJip+(insts.subString(12,13))
+CJip=CJip+(insts.subString(11,12))
+CJip=CJip+(insts.subString(10,11))
+CJip=CJip+(insts.subString(9,10))
+CJip=CJip+(insts.subString(8,9))
 vtyp="10i"
 cmd=CJh+CJip+poC+CJm
-clc=43
-FOR m,5,12,1
-cl=(cmd.charAt(m))+256
-clc=clc+cl
-END
+clc=43+1792
+clc=clc+(cmd.charAt(5))
+clc=clc+(cmd.charAt(6))
+clc=clc+(cmd.charAt(7))
+clc=clc+(cmd.charAt(8))
+clc=clc+(cmd.charAt(9))
+clc=clc+(cmd.charAt(10))
+clc=clc+(cmd.charAt(11))
 clcS=clc.toString(0,1)
 CLC=clcS.subString(0,1)
 cmd=cmd+CLC+CJe
@@ -241,22 +248,20 @@ RETURN(FALSE)
 END
 
 FUNCTION reJS ()
-str1=H22+"projectId"+H22+A3+H22+proId+H22
 str2=C2+H22+"sensorId"+H22+A3+H22+dId+H22
 str3=C2+H22+"type"+H22+A3+H22+typ+H22
 str4=C2+H22+"attribute"+H22+A3+H22+atr+H22
 str5=C2+H22+"value"+H22+A3+H22+val+H22
 str6=C2+H22+"valuetype"+H22+A3+H22+vtyp+H22
-JS=B7+jsh+str1+str2+str3+str4+str5+str6+D7
+JS=B7+jsh+str2+str3+str4+str5+str6+D7
 SEND(SOCK,A,JS)
 RETURN(FALSE)
 END
 
 FUNCTION reJS2 ()
-str1=H22+"projectId"+H22+A3+H22+proId+H22
 str2=C2+H22+"sensorId"+H22+A3+H22+dId+H22
 str3=C2+H22+"status"+H22+A3+H22+stus+H22
-JS2=B7+jsh2+str1+str2+str3+D7
+JS2=B7+jsh2+str2+str3+D7
 SEND(SOCK,A,JS2)
 RETURN(FALSE)
 END
