@@ -1,6 +1,7 @@
-FLASH(STRSTR) proId="000001"
+FLASH(STRSTR) proid="000001"
 mac=MAC
-imei= "866"+mac
+mei= "866"+mac
+FLASH(STRSTR) imei=mei
 B7=[0x7B]
 D7=[0x7D]
 H22=[0x22]
@@ -30,9 +31,9 @@ isB=FALSE
 send=FALSE
 getI= B7+H22+"msgType"+H22+A3+H22+"get"+H22+C2+H22+"imei"+H22+A3+H22+imei+H22+D7
 JS=""
-jsh=H22+"msgType"+H22+A3+H22+"datapoint"+H22+C2
+jsh=H22+"msgType"+H22+A3+H22+"datapoint"+H22+C2+H22+"projectId"+H22+A3+H22+proid+H22
 JS2=""
-jsh2=H22+"msgType"+H22+A3+H22+"status"+H22+C2
+jsh2=H22+"msgType"+H22+A3+H22+"status"+H22+C2+H22+"projectId"+H22+A3+H22+proid+H22
 stus="0"
 dId=""
 typ=""
@@ -74,7 +75,7 @@ udPos=-1
 END
 t=SYSTIME
 t=t-rT
-IF(t>86400*1000)
+IF(t>21600*1000)
 RESET
 rT=SYSTIME
 END
@@ -87,7 +88,7 @@ lg=1
 END
 END
 
-TIMER Search 3
+TIMER Search 4
 IF(i<inp_l && isB!=1)
 char=inp.charAt(i)
 IF(char==36)
@@ -104,7 +105,7 @@ i=0
 END
 END
 
-TIMER Instruct 1000
+TIMER Instruct 2000
 IF(isB==1 && send==0)
 send=TRUE
 dId=inp.subString(b,(b+19))
@@ -158,9 +159,9 @@ CJip=CJip+(insts.subString(n,(n+1)))
 END
 vtyp="10i"
 cmd=CJh+CJip+poC+CJm
-clc=43
+clc=43+1792
 FOR m,5,12,1
-cl=(cmd.charAt(m))+256
+cl=(cmd.charAt(m))
 clc=clc+cl
 END
 clcS=clc.toString(0,1)
@@ -306,22 +307,20 @@ END
 
 
 FUNCTION reJS ()
-str1=H22+"projectId"+H22+A3+H22+proId+H22
 str2=C2+H22+"sensorId"+H22+A3+H22+dId+H22
 str3=C2+H22+"type"+H22+A3+H22+typ+H22
 str4=C2+H22+"attribute"+H22+A3+H22+atr+H22
 str5=C2+H22+"value"+H22+A3+H22+val+H22
 str6=C2+H22+"valuetype"+H22+A3+H22+vtyp+H22
-JS=B7+jsh+str1+str2+str3+str4+str5+str6+D7
+JS=B7+jsh+str2+str3+str4+str5+str6+D7
 SEND(SOCK,netp,JS)
 RETURN(FALSE)
 END
 
 FUNCTION reJS2 ()
-str1=H22+"projectId"+H22+A3+H22+proId+H22
 str2=C2+H22+"sensorId"+H22+A3+H22+dId+H22
 str3=C2+H22+"status"+H22+A3+H22+stus+H22
-JS2=B7+jsh2+str1+str2+str3+D7
+JS2=B7+jsh2+str2+str3+D7
 SEND(SOCK,netp,JS2)
 RETURN(FALSE)
 END
