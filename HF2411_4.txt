@@ -27,9 +27,21 @@ isB=FALSE
 send=FALSE
 getI= B7+H22+"msgType"+H22+A3+H22+"get"+H22+C2+H22+"imei"+H22+A3+H22+imei+H22+D7
 JS=""
+<<<<<<< HEAD
 jsh=H22+"msgType"+H22+A3+H22+"datapoint"+H22+C2+H22+"projectId"+H22+A3+H22+proid+H22
 JS2=""
 jsh2=H22+"msgType"+H22+A3+H22+"status"+H22+C2+H22+"projectId"+H22+A3+H22+proid+H22
+=======
+<<<<<<< HEAD
+jsh=H22+"msgType"+H22+A3+H22+"datapoint"+H22+C2+H22+"projectId"+H22+A3+H22+proid+H22
+JS2=""
+jsh2=H22+"msgType"+H22+A3+H22+"status"+H22+C2+H22+"projectId"+H22+A3+H22+proid+H22
+=======
+jsh=H22+"msgType"+H22+A3+H22+"datapoint"+H22+C2+H22+"projectId"+H22+A3+H22+proId+H22
+JS2=""
+jsh2=H22+"msgType"+H22+A3+H22+"status"+H22+C2+H22+"projectId"+H22+A3+H22+proId+H22
+>>>>>>> a72eaf500cdc0ed9cc4830f221676b9c3fd3103b
+>>>>>>> fb015abc0d9c7fd47805958cce8c9645135c3591
 stus="0"
 dId=""
 typ=""
